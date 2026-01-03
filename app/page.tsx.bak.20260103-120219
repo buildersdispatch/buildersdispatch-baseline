@@ -1,0 +1,44 @@
+"use client";
+
+import { CrossmintProvider, CrossmintHostedCheckout } from "@crossmint/client-sdk-react-ui";
+
+export default function Home() {
+    const clientApiKey = process.env.NEXT_PUBLIC_CLIENT_API_KEY as string;
+    const collectionId = process.env.NEXT_PUBLIC_COLLECTION_ID as string;
+
+    return (
+        <CrossmintProvider apiKey={clientApiKey}>
+            <CrossmintHostedCheckout
+                lineItems={{
+                    collectionLocator: `crossmint:${collectionId}`,
+                    callData: {
+                        totalPrice: "0.001",
+                        quantity: 1,
+                    },
+                }}
+                payment={{
+                    crypto: { enabled: true },
+                    fiat: { enabled: true },
+                }}
+                appearance={{
+                    display: "same-tab",
+                    theme: {
+                        button: "dark",
+  checkout: "dark",
+                    },
+                    overlay: {
+                        enabled: true,
+                    },
+                    variables: {
+                        colors: {
+                            accent: "#FF5F15",
+                        },
+                    },
+                }}
+                locale="en-US"
+            >
+                "Dispatch Now"
+            </CrossmintHostedCheckout>
+        </CrossmintProvider>
+    );
+}

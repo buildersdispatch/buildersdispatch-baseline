@@ -2,7 +2,7 @@
 
 import React from "react";
 
-export default function Home() {
+export default function Page() {
   return (
     <main className="wrap">
       <div className="top">
@@ -19,7 +19,7 @@ export default function Home() {
         </p>
 
         <div className="ctaRow">
-          <button className="btn" onClick={() => (window.location.href = "/button-test")}>
+          <button className="btn" onClick={() => (window.location.href = "/next-test")}>
             DISPATCH NOW
           </button>
         </div>
@@ -43,14 +43,24 @@ export default function Home() {
           padding: 28px 18px;
           color: #fff;
 
+          /* Lighter, glossy black/gray/blue */
           background:
+            /* glossy highlight streak */
             radial-gradient(900px 520px at 50% -10%, rgba(255,255,255,0.10), transparent 62%),
             radial-gradient(620px 380px at 55% 25%, rgba(255,255,255,0.06), transparent 65%),
+
+            /* gentle blues */
             radial-gradient(1100px 760px at 18% 18%, rgba(120, 170, 255, 0.26), transparent 60%),
             radial-gradient(1000px 700px at 86% 78%, rgba(90, 150, 255, 0.18), transparent 62%),
+
+            /* more grays */
             radial-gradient(900px 700px at 35% 70%, rgba(255,255,255,0.06), transparent 66%),
             radial-gradient(1200px 900px at 70% 55%, rgba(255,255,255,0.04), transparent 70%),
+
+            /* base black/gray ramp */
             linear-gradient(180deg, #141a23 0%, #0f141d 42%, #080b11 100%);
+
+          /* extra gloss */
           background-attachment: fixed;
         }
 
@@ -79,9 +89,6 @@ export default function Home() {
           max-width: 980px;
           margin: 0 auto;
           padding: 12px 0;
-
-          /* Move up ~25% of the “center feel” without pinning to top */
-          transform: translateY(-8vh);
         }
 
         .title {
@@ -93,9 +100,6 @@ export default function Home() {
           font-weight: 900;
           letter-spacing: 0.01em;
           text-shadow: 0 14px 50px rgba(0, 0, 0, 0.45);
-
-          /* Prevent the “H on a new line” issue */
-          white-space: nowrap;
         }
 
         .accent {
@@ -155,25 +159,11 @@ export default function Home() {
             font-size: 13px;
             letter-spacing: 0.12em;
           }
-
-          /* Responsive shrink that still stays single-line */
           .title {
-            font-size: clamp(32px, 9vw, 44px);
+            font-size: 44px;
           }
-
           .sub {
             font-size: 17px;
-          }
-
-          /* smaller lift on small screens */
-          .center {
-            transform: translateY(-5vh);
-          }
-        }
-
-        @media (max-height: 680px) {
-          .center {
-            transform: translateY(-4vh);
           }
         }
       `}</style>

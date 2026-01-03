@@ -1,0 +1,160 @@
+"use client";
+
+import React from "react";
+
+export default function Page() {
+  return (
+    <main className="wrap">
+      <div className="card">
+        <div className="badge">YOUR CHOICES · PROJECT COMPLETE</div>
+
+        <h1>
+          Builders<span className="accent">DISPATCH</span>
+        </h1>
+
+        <div className="accentLine" />
+
+        <p className="sub">
+          A modern platform for the construction industry — connecting people, projects, and execution.
+        </p>
+
+        <div className="ctaRow">
+          <button className="btn" onClick={() => (window.location.href = "/next-test")}>
+            DISPATCH NOW
+          </button>
+        </div>
+
+        <div className="footer">© 2026 BuildersDISPATCH · All rights reserved</div>
+      </div>
+
+      <style jsx>{`
+        :global(html),
+        :global(body) {
+          margin: 0;
+          padding: 0;
+        }
+
+        .wrap {
+          --accent: #f5ff15;
+
+          min-height: 100vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 48px 16px;
+          color: #fff;
+
+          background: radial-gradient(1200px 700px at 20% 15%, rgba(90, 140, 255, 0.35), transparent 55%),
+            radial-gradient(900px 600px at 80% 70%, rgba(60, 120, 220, 0.25), transparent 55%),
+            linear-gradient(180deg, #0b0f16 0%, #0a1222 45%, #07101b 100%);
+        }
+
+        .card {
+          width: 100%;
+          max-width: 860px;
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          border-radius: 18px;
+          padding: 40px 34px;
+          background: rgba(0, 0, 0, 0.35);
+          backdrop-filter: blur(10px);
+          box-shadow: 0 18px 60px rgba(0, 0, 0, 0.55);
+        }
+
+        .badge {
+          display: inline-flex;
+          align-items: center;
+          font-size: 12px;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          padding: 10px 12px;
+          border-radius: 999px;
+
+          border: 1px solid rgba(245, 255, 21, 0.42);
+          background: rgba(20, 40, 90, 0.35);
+          box-shadow: 0 10px 26px rgba(245, 255, 21, 0.06);
+
+          margin-bottom: 18px;
+        }
+
+        h1 {
+          margin: 0 0 10px 0;
+          font-size: 44px;
+          line-height: 1.05;
+          letter-spacing: 0.01em;
+        }
+
+        .accent {
+          color: var(--accent);
+          text-shadow: 0 0 18px rgba(245, 255, 21, 0.18);
+        }
+
+        .accentLine {
+          height: 2px;
+          width: 220px;
+          border-radius: 999px;
+          background: linear-gradient(90deg, rgba(245, 255, 21, 0.95), rgba(245, 255, 21, 0));
+          margin: 6px 0 18px 0;
+        }
+
+        .sub {
+          margin: 0 0 26px 0;
+          font-size: 18px;
+          line-height: 1.5;
+          color: rgba(255, 255, 255, 0.82);
+          max-width: 720px;
+        }
+
+        .ctaRow {
+          display: flex;
+          gap: 14px;
+          align-items: center;
+          margin: 10px 0 26px 0;
+        }
+
+        .btn {
+          padding: 14px 22px;
+          border-radius: 12px;
+          border: 1px solid rgba(0, 0, 0, 0.35);
+          background: var(--accent);
+          color: #07101b;
+          font-weight: 900;
+          font-size: 16px;
+          cursor: pointer;
+          box-shadow: 0 14px 34px rgba(245, 255, 21, 0.12);
+          transition: transform 120ms ease, filter 120ms ease;
+        }
+
+        .btn:hover {
+          transform: translateY(-1px);
+          filter: brightness(1.04);
+        }
+
+        .btn:active {
+          transform: translateY(0px);
+          filter: brightness(0.98);
+        }
+
+        .footer {
+          margin-top: 26px;
+          font-size: 13px;
+          color: rgba(255, 255, 255, 0.6);
+        }
+
+        @media (max-width: 520px) {
+          .card {
+            padding: 28px 22px;
+          }
+          h1 {
+            font-size: 34px;
+          }
+          .sub {
+            font-size: 16px;
+          }
+          .accentLine {
+            width: 170px;
+          }
+        }
+      `}</style>
+    </main>
+  );
+}

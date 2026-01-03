@@ -1,0 +1,580 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import {
+  CrossmintProvider,
+  CrossmintCheckoutProvider,
+  CrossmintHostedCheckout,
+} from "@crossmint/client-sdk-react-ui";
+
+/**
+ * BuildersDISPATCH /next-test
+ * Lab page to experiment with Hosted Checkout UX controls
+ *
+ * Adds:
+ * - Custom button label (children)
+ * - Presets (built-in + localStorage save)
+ * - Export/Import JSON config
+ * - Share link via ?c= (base64url JSON)
+ */
+
+type DisplayMode = "same-tab" | "popup" | "new-tab";
+type ButtonTheme = "light" | "dark" | "crossmint";
+type CheckoutTheme = "light" | "dark";
+type DefaultMethod = "fiat" | "crypto";
+
+type LabConfig = {
+  // UX
+  display: DisplayMode;
+  buttonTheme: ButtonTheme;
+  checkoutTheme: CheckoutTheme;
+  overlayEnabled: boolean;
+  accent: string;
+  buttonLabel: string;
+
+  // Checkout inputs
+  qty: number;
+  totalPrice: string;
+  recipientEmail: string;
+  receiptEmail: string;
+
+  // Payment toggles
+  fiatEnabled: boolean;
+  cryptoEnabled: boolean;
+  defaultMethod: DefaultMethod;
+
+  // Optional defaults (nice to experiment with)
+  fiatCurrency: string; // e.g. "usd"
+  cryptoChain: string; // e.g. "polygon"
+  cryptoCurrency: string; // e.g. "matic"
+};
+
+const BASELINE: LabConfig = {
+  display: "same-tab",
+  buttonTheme: "dark",
+  checkoutTheme: "dark",
+  overlayEnabled: false,
+  accent: "#FF0000",
+  buttonLabel: "Pay with Crossmint",
+
+  qty: 1,
+  totalPrice: "0.001",
+  recipientEmail: "buyer@example.com",
+  receiptEmail: "receipt@example.com",
+
+  fiatEnabled: true,
+  cryptoEnabled: true,
+  defaultMethod: "fiat",
+
+  fiatCurrency: "usd",
+  cryptoChain: "polygon",
+  cryptoCurrency: "matic",
+};
+
+const BUILTIN_PRESETS: Array<{ name: string; config: Partial<LabConfig> }> = [
+  { name: "Baseline (locked)", config: BASELINE },
+  {
+    name: "Popup + overlay",
+    config: { display: "popup", overlayEnabled: true, buttonLabel: "Dispatch Now" },
+  },
+  {
+    name: "New tab (no overlay)",
+    config: { display: "new-tab", overlayEnabled: false, buttonLabel: "Open Checkout" },
+  },
+  {
+    name: "Fiat only",
+    config: { fiatEnabled: true, cryptoEnabled: false, defaultMethod: "fiat" },
+  },
+  {
+    name: "Crypto only",
+    config: { fiatEnabled: false, cryptoEnabled: true, defaultMethod: "crypto" },
+  },
+  {
+    name: "Crossmint theme",
+    config: { buttonTheme: "crossmint", buttonLabel: "Buy Now" },
+  },
+];
+
+function safeJsonParse<T>(s: string): T | null {
+  try {
+    return JSON.parse(s) as T;
+  } catch {
+    return null;
+  }
+}
+
+function toBase64Url(json: string): string {
+  // btoa expects ASCII; our config is ASCII-safe (hex colors, emails, etc.)
+  const b64 = btoa(json);
+  return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
+
+function fromBase64Url(b64url: string): string | null {
+  try {
+    const pad = "=".repeat((4 - (b64url.length % 4)) % 4);
+    const b64 = (b64url + pad).replace(/-/g, "+").replace(/_/g, "/");
+    return atob(b64);
+  } catch {
+    return null;
+  }
+}
+
+export default function Page() {
+  const clientApiKey = process.env.NEXT_PUBLIC_CLIENT_API_KEY as string;
+  const collectionId = process.env.NEXT_PUBLIC_COLLECTION_ID as string;
+
+  // Single source of truth for the lab state
+  const [cfg, setCfg] = useState<LabConfig>(BASELINE);
+
+  // Import/export UI
+  const [importText, setImportText] = useState<string>("");
+  const [statusMsg, setStatusMsg] = useState<string>("");
+
+  // Load from share link (?c=) and then from localStorage (if no share link)
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const c = url.searchParams.get("c");
+
+    if (c) {
+      const decoded = fromBase64Url(c);
+      if (decoded) {
+        const parsed = safeJsonParse<LabConfig>(decoded);
+        if (parsed) {
+          setCfg({ ...BASELINE, ...parsed });
+          setStatusMsg("Loaded config from share link.");
+          return;
+        }
+      }
+      setStatusMsg("Share link was invalid. Loaded baseline instead.");
+      setCfg(BASELINE);
+      return;
+    }
+
+    const saved = localStorage.getItem("bd_next_test_lab_config");
+    if (saved) {
+      const parsed = safeJsonParse<LabConfig>(saved);
+      if (parsed) {
+        setCfg({ ...BASELINE, ...parsed });
+        setStatusMsg("Loaded saved config from this browser.");
+      }
+    }
+  }, []);
+
+  const missing = useMemo(() => {
+    const m: string[] = [];
+    if (!clientApiKey) m.push("NEXT_PUBLIC_CLIENT_API_KEY");
+    if (!collectionId) m.push("NEXT_PUBLIC_COLLECTION_ID");
+    return m;
+  }, [clientApiKey, collectionId]);
+
+  function applyPreset(partial: Partial<LabConfig>) {
+    setCfg((prev) => ({ ...prev, ...partial }));
+    setStatusMsg("Preset applied.");
+  }
+
+  function saveLocal() {
+    localStorage.setItem("bd_next_test_lab_config", JSON.stringify(cfg));
+    setStatusMsg("Saved to localStorage (this browser).");
+  }
+
+  function resetBaseline() {
+    setCfg(BASELINE);
+    setStatusMsg("Reset to baseline.");
+    // also clear share param if present
+    const url = new URL(window.location.href);
+    url.searchParams.delete("c");
+    window.history.replaceState({}, "", url.toString());
+  }
+
+  async function copyExportJson() {
+    const txt = JSON.stringify(cfg, null, 2);
+    await navigator.clipboard.writeText(txt);
+    setStatusMsg("Copied config JSON to clipboard.");
+  }
+
+  function importFromJson() {
+    const parsed = safeJsonParse<LabConfig>(importText.trim());
+    if (!parsed) {
+      setStatusMsg("Import failed: invalid JSON.");
+      return;
+    }
+    setCfg({ ...BASELINE, ...parsed });
+    setStatusMsg("Imported config JSON.");
+  }
+
+  async function copyShareLink() {
+    const json = JSON.stringify(cfg);
+    const c = toBase64Url(json);
+    const url = new URL(window.location.href);
+    url.searchParams.set("c", c);
+    await navigator.clipboard.writeText(url.toString());
+    setStatusMsg("Copied share link to clipboard.");
+  }
+
+  return (
+    <div
+      style={{
+        padding: "2rem",
+        maxWidth: 1080,
+        margin: "0 auto",
+        fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
+      }}
+    >
+      <h1 style={{ fontSize: "1.6rem", marginBottom: "0.25rem" }}>
+        Crossmint Button / Display Test
+      </h1>
+      <p style={{ marginTop: 0, opacity: 0.8 }}>
+        Route: <code>/next-test</code>
+      </p>
+
+      {missing.length > 0 && (
+        <div
+          style={{
+            padding: "1rem",
+            border: "1px solid #f00",
+            borderRadius: 8,
+            marginBottom: "1rem",
+          }}
+        >
+          <strong>Missing env:</strong> {missing.join(", ")}
+          <br />
+          Expected in <code>.env.local</code>:
+          <br />
+          <code>NEXT_PUBLIC_CLIENT_API_KEY=...</code>
+          <br />
+          <code>NEXT_PUBLIC_COLLECTION_ID=...</code>
+        </div>
+      )}
+
+      {statusMsg && (
+        <div style={{ marginBottom: "1rem", opacity: 0.85, fontSize: 13 }}>
+          {statusMsg}
+        </div>
+      )}
+
+      {/* Presets + Actions */}
+      <div
+        style={{
+          display: "flex",
+          gap: 10,
+          flexWrap: "wrap",
+          alignItems: "center",
+          marginBottom: "1rem",
+        }}
+      >
+        {BUILTIN_PRESETS.map((p) => (
+          <button
+            key={p.name}
+            onClick={() => applyPreset(p.config)}
+            style={{
+              padding: "0.45rem 0.7rem",
+              borderRadius: 8,
+              border: "1px solid #ddd",
+              background: "#fff",
+              cursor: "pointer",
+            }}
+          >
+            {p.name}
+          </button>
+        ))}
+
+        <div style={{ flex: 1 }} />
+
+        <button
+          onClick={saveLocal}
+          style={{
+            padding: "0.45rem 0.7rem",
+            borderRadius: 8,
+            border: "1px solid #ddd",
+            background: "#fff",
+            cursor: "pointer",
+          }}
+        >
+          Save
+        </button>
+        <button
+          onClick={resetBaseline}
+          style={{
+            padding: "0.45rem 0.7rem",
+            borderRadius: 8,
+            border: "1px solid #ddd",
+            background: "#fff",
+            cursor: "pointer",
+          }}
+        >
+          Reset baseline
+        </button>
+      </div>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: "1rem",
+          marginBottom: "1.25rem",
+        }}
+      >
+        <div style={{ border: "1px solid #ddd", borderRadius: 10, padding: "1rem" }}>
+          <h2 style={{ fontSize: "1.1rem", marginTop: 0 }}>Appearance</h2>
+
+          <label style={{ display: "block", marginBottom: 10 }}>
+            Display
+            <select
+              value={cfg.display}
+              onChange={(e) => setCfg((p) => ({ ...p, display: e.target.value as DisplayMode }))}
+              style={{ display: "block", width: "100%", marginTop: 6 }}
+            >
+              <option value="same-tab">same-tab</option>
+              <option value="popup">popup</option>
+              <option value="new-tab">new-tab</option>
+            </select>
+          </label>
+
+          <label style={{ display: "block", marginBottom: 10 }}>
+            Button theme
+            <select
+              value={cfg.buttonTheme}
+              onChange={(e) => setCfg((p) => ({ ...p, buttonTheme: e.target.value as ButtonTheme }))}
+              style={{ display: "block", width: "100%", marginTop: 6 }}
+            >
+              <option value="dark">dark</option>
+              <option value="light">light</option>
+              <option value="crossmint">crossmint</option>
+            </select>
+          </label>
+
+          <label style={{ display: "block", marginBottom: 10 }}>
+            Checkout theme
+            <select
+              value={cfg.checkoutTheme}
+              onChange={(e) => setCfg((p) => ({ ...p, checkoutTheme: e.target.value as CheckoutTheme }))}
+              style={{ display: "block", width: "100%", marginTop: 6 }}
+            >
+              <option value="dark">dark</option>
+              <option value="light">light</option>
+            </select>
+          </label>
+
+          <label style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+            <input
+              type="checkbox"
+              checked={cfg.overlayEnabled}
+              onChange={(e) => setCfg((p) => ({ ...p, overlayEnabled: e.target.checked }))}
+            />
+            Overlay enabled
+          </label>
+
+          <label style={{ display: "block", marginBottom: 10 }}>
+            Accent color
+            <input
+              value={cfg.accent}
+              onChange={(e) => setCfg((p) => ({ ...p, accent: e.target.value }))}
+              style={{ display: "block", width: "100%", marginTop: 6 }}
+            />
+          </label>
+
+          <label style={{ display: "block", marginBottom: 0 }}>
+            Crossmint button label (children)
+            <input
+              value={cfg.buttonLabel}
+              onChange={(e) => setCfg((p) => ({ ...p, buttonLabel: e.target.value }))}
+              style={{ display: "block", width: "100%", marginTop: 6 }}
+            />
+          </label>
+        </div>
+
+        <div style={{ border: "1px solid #ddd", borderRadius: 10, padding: "1rem" }}>
+          <h2 style={{ fontSize: "1.1rem", marginTop: 0 }}>Checkout Inputs</h2>
+
+          <label style={{ display: "block", marginBottom: 10 }}>
+            Quantity
+            <input
+              type="number"
+              min={1}
+              value={cfg.qty}
+              onChange={(e) =>
+                setCfg((p) => ({ ...p, qty: Math.max(1, Number(e.target.value || 1)) }))
+              }
+              style={{ display: "block", width: "100%", marginTop: 6 }}
+            />
+          </label>
+
+          <label style={{ display: "block", marginBottom: 10 }}>
+            totalPrice (string)
+            <input
+              value={cfg.totalPrice}
+              onChange={(e) => setCfg((p) => ({ ...p, totalPrice: e.target.value }))}
+              style={{ display: "block", width: "100%", marginTop: 6 }}
+            />
+          </label>
+
+          <label style={{ display: "block", marginBottom: 10 }}>
+            Recipient email
+            <input
+              value={cfg.recipientEmail}
+              onChange={(e) => setCfg((p) => ({ ...p, recipientEmail: e.target.value }))}
+              style={{ display: "block", width: "100%", marginTop: 6 }}
+            />
+          </label>
+
+          <label style={{ display: "block", marginBottom: 10 }}>
+            Receipt email
+            <input
+              value={cfg.receiptEmail}
+              onChange={(e) => setCfg((p) => ({ ...p, receiptEmail: e.target.value }))}
+              style={{ display: "block", width: "100%", marginTop: 6 }}
+            />
+          </label>
+
+          <div style={{ display: "flex", gap: 14, marginBottom: 10 }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <input
+                type="checkbox"
+                checked={cfg.fiatEnabled}
+                onChange={(e) => setCfg((p) => ({ ...p, fiatEnabled: e.target.checked }))}
+              />
+              Fiat
+            </label>
+            <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <input
+                type="checkbox"
+                checked={cfg.cryptoEnabled}
+                onChange={(e) => setCfg((p) => ({ ...p, cryptoEnabled: e.target.checked }))}
+              />
+              Crypto
+            </label>
+          </div>
+
+          <label style={{ display: "block", marginBottom: 10 }}>
+            Default method
+            <select
+              value={cfg.defaultMethod}
+              onChange={(e) => setCfg((p) => ({ ...p, defaultMethod: e.target.value as DefaultMethod }))}
+              style={{ display: "block", width: "100%", marginTop: 6 }}
+            >
+              <option value="fiat">fiat</option>
+              <option value="crypto">crypto</option>
+            </select>
+          </label>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <label style={{ display: "block" }}>
+              Fiat currency
+              <input
+                value={cfg.fiatCurrency}
+                onChange={(e) => setCfg((p) => ({ ...p, fiatCurrency: e.target.value }))}
+                style={{ display: "block", width: "100%", marginTop: 6 }}
+              />
+            </label>
+
+            <label style={{ display: "block" }}>
+              Crypto chain
+              <input
+                value={cfg.cryptoChain}
+                onChange={(e) => setCfg((p) => ({ ...p, cryptoChain: e.target.value }))}
+                style={{ display: "block", width: "100%", marginTop: 6 }}
+              />
+            </label>
+
+            <label style={{ display: "block" }}>
+              Crypto currency
+              <input
+                value={cfg.cryptoCurrency}
+                onChange={(e) => setCfg((p) => ({ ...p, cryptoCurrency: e.target.value }))}
+                style={{ display: "block", width: "100%", marginTop: 6 }}
+              />
+            </label>
+          </div>
+        </div>
+      </div>
+
+      {/* Export / Import / Share */}
+      <div style={{ border: "1px solid #ddd", borderRadius: 10, padding: "1rem", marginBottom: "1rem" }}>
+        <h2 style={{ fontSize: "1.1rem", marginTop: 0 }}>Config Tools</h2>
+
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
+          <button
+            onClick={copyExportJson}
+            style={{ padding: "0.45rem 0.7rem", borderRadius: 8, border: "1px solid #ddd", background: "#fff", cursor: "pointer" }}
+          >
+            Copy config JSON
+          </button>
+
+          <button
+            onClick={copyShareLink}
+            style={{ padding: "0.45rem 0.7rem", borderRadius: 8, border: "1px solid #ddd", background: "#fff", cursor: "pointer" }}
+          >
+            Copy share link
+          </button>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 10 }}>
+          <textarea
+            value={importText}
+            onChange={(e) => setImportText(e.target.value)}
+            placeholder="Paste config JSON here to import..."
+            style={{ width: "100%", minHeight: 90, padding: 10, borderRadius: 8, border: "1px solid #ddd" }}
+          />
+          <button
+            onClick={importFromJson}
+            style={{ padding: "0.45rem 0.7rem", borderRadius: 8, border: "1px solid #ddd", background: "#fff", cursor: "pointer", height: 44, alignSelf: "start" }}
+          >
+            Import JSON
+          </button>
+        </div>
+      </div>
+
+      {/* Live Component */}
+      <div style={{ border: "1px solid #ddd", borderRadius: 10, padding: "1rem" }}>
+        <h2 style={{ fontSize: "1.1rem", marginTop: 0 }}>Live Component</h2>
+
+        {/* If env is missing, don't attempt to render Crossmint */}
+        {missing.length > 0 ? (
+          <div style={{ opacity: 0.8 }}>
+            Set the env vars and restart the Next process to enable the hosted checkout component.
+          </div>
+        ) : (
+          <CrossmintProvider apiKey={clientApiKey}>
+            <CrossmintCheckoutProvider>
+              <CrossmintHostedCheckout
+                // We are intentionally locking the "Crossmint end" shape:
+                // one collectionLocator + callData that we can vary safely.
+                lineItems={[
+                  {
+                    collectionLocator: `crossmint:${collectionId}`,
+                    callData: {
+                      totalPrice: cfg.totalPrice,
+                      quantity: cfg.qty,
+                    },
+                  },
+                ]}
+                appearance={{
+                  display: cfg.display,
+                  overlay: { enabled: cfg.overlayEnabled },
+                  theme: { button: cfg.buttonTheme, checkout: cfg.checkoutTheme },
+                  variables: { colors: { accent: cfg.accent } },
+                }}
+                payment={{
+                  fiat: { enabled: cfg.fiatEnabled, },
+                  crypto: {
+                    enabled: cfg.cryptoEnabled,
+                  },
+                  defaultMethod: cfg.defaultMethod,
+                  receiptEmail: cfg.receiptEmail,
+                }}
+                recipient={{ email: cfg.recipientEmail }}
+                locale="en-US"
+              >
+                {cfg.buttonLabel}
+              </CrossmintHostedCheckout>
+            </CrossmintCheckoutProvider>
+
+            <div style={{ marginTop: "0.75rem", opacity: 0.75, fontSize: 13 }}>
+              Tip: if you change env vars, rebuild + restart PM2.
+            </div>
+          </CrossmintProvider>
+        )}
+      </div>
+    </div>
+  );
+}

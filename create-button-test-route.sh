@@ -1,4 +1,32 @@
+#!/usr/bin/env bash
+set -euo pipefail
 
+APP_DIR="/root/next-test"
+ROUTE_DIR="$APP_DIR/app/button-test"
+PAGE_FILE="$ROUTE_DIR/page.tsx"
+PM2_APP="buildersdispatch-next"
+
+cd "$APP_DIR"
+
+echo "=== Creating /button-test route (leaves / unchanged) ==="
+
+# Safety: confirm we are in a Next.js app router project
+if [[ ! -d "$APP_DIR/app" ]]; then
+  echo "ERROR: $APP_DIR/app not found"
+  exit 1
+fi
+
+# DO NOT TOUCH homepage; just show it exists
+if [[ -f "$APP_DIR/app/page.tsx" ]]; then
+  echo "OK: homepage exists at app/page.tsx (not modifying)"
+else
+  echo "WARN: app/page.tsx not found (still not modifying anything)"
+fi
+
+mkdir -p "$ROUTE_DIR"
+
+# Write page.tsx EXACTLY as provided (no edits)
+cat <<'TSX' > "$PAGE_FILE"
 "use client";
 
 import { useEffect } from "react";
@@ -98,3 +126,13 @@ export default function Home() {
         </div>
     );
 }
+TSX
+
+echo "=== Build (production) ==="
+npm run build
+
+echo "=== Restart PM2 ==="
+pm2 restart "$PM2_APP" --update-env
+
+echo "DONE"
+echo "Open: https://buildersdispatch.com/button-test"

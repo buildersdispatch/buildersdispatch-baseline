@@ -1,0 +1,134 @@
+"use client";
+
+import React from "react";
+
+export default function Page() {
+  return (
+    <main className="wrap">
+      <div className="container">
+        <div className="kicker">YOUR CHOICES · PROJECT COMPLETE</div>
+
+        <h1 className="title">
+          Builders<span className="accent">DISPATCH</span>
+        </h1>
+
+        <p className="sub">
+          A modern platform for the construction industry — connecting people, projects, and execution.
+        </p>
+
+        <div className="ctaRow">
+          <button className="btn" onClick={() => (window.location.href = "/next-test")}>
+            DISPATCH NOW
+          </button>
+        </div>
+
+        <div className="footer">© 2026 BuildersDISPATCH · All rights reserved</div>
+      </div>
+
+      <style jsx>{`
+        :global(html),
+        :global(body) {
+          margin: 0;
+          padding: 0;
+        }
+
+        .wrap {
+          --accent: #ff5f15;
+
+          min-height: 100vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 56px 18px;
+          color: #fff;
+
+          /* gray → blue base, with subtle orange accent glow */
+          background:
+            radial-gradient(900px 600px at 25% 20%, rgba(90, 140, 255, 0.30), transparent 60%),
+            radial-gradient(900px 600px at 80% 70%, rgba(60, 120, 220, 0.22), transparent 60%),
+            radial-gradient(700px 500px at 55% 35%, rgba(255, 95, 21, 0.12), transparent 62%),
+            linear-gradient(180deg, #0b0f16 0%, #0a1222 45%, #07101b 100%);
+        }
+
+        .container {
+          width: 100%;
+          max-width: 920px;
+        }
+
+        .kicker {
+          display: inline-block;
+          font-size: 12px;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          color: rgba(255, 255, 255, 0.72);
+          margin-bottom: 14px;
+        }
+
+        .title {
+          margin: 0 0 12px 0;
+          font-size: 54px;
+          line-height: 1.03;
+          letter-spacing: 0.01em;
+        }
+
+        .accent {
+          color: var(--accent);
+          text-shadow: 0 0 18px rgba(255, 95, 21, 0.18);
+        }
+
+        .sub {
+          margin: 0 0 26px 0;
+          font-size: 18px;
+          line-height: 1.55;
+          color: rgba(255, 255, 255, 0.82);
+          max-width: 760px;
+        }
+
+        .ctaRow {
+          display: flex;
+          gap: 14px;
+          align-items: center;
+          margin: 8px 0 28px 0;
+        }
+
+        .btn {
+          padding: 14px 22px;
+          border-radius: 12px;
+          border: 1px solid rgba(0, 0, 0, 0.35);
+          background: var(--accent);
+          color: #07101b;
+          font-weight: 900;
+          font-size: 16px;
+          cursor: pointer;
+          box-shadow: 0 14px 34px rgba(255, 95, 21, 0.14);
+          transition: transform 120ms ease, filter 120ms ease;
+        }
+
+        .btn:hover {
+          transform: translateY(-1px);
+          filter: brightness(1.04);
+        }
+
+        .btn:active {
+          transform: translateY(0px);
+          filter: brightness(0.98);
+        }
+
+        .footer {
+          margin-top: 26px;
+          font-size: 13px;
+          color: rgba(255, 255, 255, 0.6);
+        }
+
+        @media (max-width: 520px) {
+          .title {
+            font-size: 38px;
+          }
+          .sub {
+            font-size: 16px;
+          }
+        }
+      `}</style>
+    </main>
+  );
+}

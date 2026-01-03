@@ -2,7 +2,7 @@
 
 import React from "react";
 
-export default function Home() {
+export default function Page() {
   return (
     <main className="wrap">
       <div className="top">
@@ -19,8 +19,8 @@ export default function Home() {
         </p>
 
         <div className="ctaRow">
-          <button className="btn" onClick={() => (window.location.href = "/button-test")}>
-            DISPATCH NOW
+          <button className="btn" onClick={() => (window.location.href = "/next-test")}>
+            CONFIRM DISPATCH
           </button>
         </div>
       </div>
@@ -79,8 +79,6 @@ export default function Home() {
           max-width: 980px;
           margin: 0 auto;
           padding: 12px 0;
-
-          /* Move up ~25% of the “center feel” without pinning to top */
           transform: translateY(-8vh);
         }
 
@@ -93,8 +91,6 @@ export default function Home() {
           font-weight: 900;
           letter-spacing: 0.01em;
           text-shadow: 0 14px 50px rgba(0, 0, 0, 0.45);
-
-          /* Prevent the “H on a new line” issue */
           white-space: nowrap;
         }
 
@@ -156,7 +152,6 @@ export default function Home() {
             letter-spacing: 0.12em;
           }
 
-          /* Responsive shrink that still stays single-line */
           .title {
             font-size: clamp(32px, 9vw, 44px);
           }
@@ -165,7 +160,6 @@ export default function Home() {
             font-size: 17px;
           }
 
-          /* smaller lift on small screens */
           .center {
             transform: translateY(-5vh);
           }
